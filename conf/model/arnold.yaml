@@ -14,7 +14,7 @@ defaults:
   - clip_proj: default
   - /annotations@val_instructions: new_playtable_validation
 
-_target_: hulc.models.hulc.Hulc
+_target_: hulc.models.arnold_hulc.ArnoldHulc
 _recursive_: false
 
 kl_beta: ${loss.kl_beta}

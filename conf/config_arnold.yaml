@@ -1,5 +1,5 @@
 defaults:
-  - callbacks: default
+  - callbacks: arnold
   - datamodule: arnold
   - model: arnold
   - loss: default

@@ -56,7 +56,8 @@ class ArnoldDiskDataset(ArnoldBaseDataset):
         #     raise NotImplementedError
         # self.pretrain = pretrain
         # self.skip_frames = skip_frames
-
+        self.episode_lookup = self._build_file_indices_lang(self.abs_datasets_dir)
+        self._load_episode(200, 10)
         # if self.with_lang:
         #     self.episode_lookup, self.lang_lookup, self.lang_ann = self._build_file_indices_lang(self.abs_datasets_dir)
         # else:
@@ -78,7 +79,7 @@ class ArnoldDiskDataset(ArnoldBaseDataset):
     #     """
     #     return Path(f"{self.naming_pattern[0]}{file_idx:0{self.n_digits}d}{self.naming_pattern[1]}")
 
-    def _load_episode(self, idx) -> Dict[str, np.ndarray]:
+    def _load_episode(self, idx, window_size) -> Dict[str, np.ndarray]:
         """
         Load consecutive frames saved as individual files on disk and combine to episode dict.
 
@@ -89,11 +90,13 @@ class ArnoldDiskDataset(ArnoldBaseDataset):
         Returns:
             episode: Dict of numpy arrays containing the episode where keys are the names of modalities.
         """
-       
+        start_file, start_index = self.episode_lookup[idx]
+        end_index = start_index + window_size
+        
         keys = list(chain(*self.observation_space.values()))
         keys.remove("language")
         keys.append("scene_obs")
-        traj = self.files[idx]
+        traj = self.files[start_file]
         # print("keys: ", keys)
         def check_multiple(name):
             patterns = str(name).split('/')[-1].split('.')[0]
@@ -107,13 +110,13 @@ class ArnoldDiskDataset(ArnoldBaseDataset):
         for camera in range(4):
             folder = traj / 'depth_images' / "Camera{0}".format(camera) 
             imgs = sorted(list(filter(check_multiple, list(folder.glob("*.png")))))
-            loaded_imgs = np.stack([np.asarray(Image.open(img)) for img in imgs])
+            loaded_imgs = np.stack([np.asarray(Image.open(img)) for img in imgs][start_index:end_index])
             episodes['depth'+str(camera)] = loaded_imgs
 
         for camera in range(4):
             folder = traj / 'raw_images' / "Camera{0}".format(camera) 
             imgs = sorted(list(filter(check_multiple, list(folder.glob("*.png")))))
-            loaded_imgs = np.stack([np.asarray(Image.open(img)) for img in imgs])
+            loaded_imgs = np.stack([np.asarray(Image.open(img)) for img in imgs][start_index:end_index])
             episodes['rgb'+str(camera)] = loaded_imgs
         
         folder = traj / 'trajectory'
@@ -121,10 +124,12 @@ class ArnoldDiskDataset(ArnoldBaseDataset):
         
         loaded_jsons = []
         # print("files: ", files)
-        for file in files:
+        for idx, file in enumerate(files):
             with open(file) as f:
                 data = json.load(f)
             loaded_jsons.append(data)
+
+        loaded_jsons = loaded_jsons[start_index:end_index]
 
         robot_pos = np.stack([ np.array(data['robot_state'])[:, 0] for data in loaded_jsons ])
         episodes['robot_pos'] = robot_pos
@@ -139,7 +144,8 @@ class ArnoldDiskDataset(ArnoldBaseDataset):
         robot_gripper = np.stack([ np.array(data['modified_actions']['joint_positions'])[8] for data in loaded_jsons ])
         episodes['robot_gripper'] = robot_gripper
 
-        # print("gripper: ", robot_gripper.shape)
+        robot_obs = np.stack([self.get_robot_obs(data) for data in loaded_jsons ])
+        episodes['robot_obs'] = robot_obs
 
         langauge_file = traj / 'mission.json'
         with open(langauge_file) as f:
@@ -147,54 +153,95 @@ class ArnoldDiskDataset(ArnoldBaseDataset):
             episodes['language'] = annotation
 
         return episodes
+        # start_idx = self.episode_lookup[idx]
+        # end_idx = start_idx + window_size
+        # keys = list(chain(*self.observation_space.values()))
+        # keys.remove("language")
+        # keys.append("scene_obs")
         # episodes = [self.load_file(self._get_episode_name(file_idx)) for file_idx in range(start_idx, end_idx)]
-        
-
         # episode = {key: np.stack([ep[key] for ep in episodes]) for key in keys}
-        
-        
         # if self.with_lang:
         #     episode["language"] = self.lang_ann[self.lang_lookup[idx]][0]  # TODO check  [0]
-        # return episode
 
-    # def _build_file_indices_lang(self, abs_datasets_dir: Path) -> Tuple[np.ndarray, List, np.ndarray]:
-    #     """
-    #     This method builds the mapping from index to file_name used for loading the episodes of the language dataset.
+    def get_robot_obs(self, data):
+        # https://arxiv.org/pdf/2112.03227.pdf
+        ee_pos = data['ee_pose'][0]
+        ee_rot = data['ee_pose'][1]
+        # print('ee_pos')
+        # print(ee_pos)
+        # print('ee_rot')
+        # print(ee_rot)
+        gripper_width =  data['robot_state'][8][0] + data['robot_state'][7][0]
+        joint_positions = [ item[0] for item in  data['robot_state']]
+      
+        gripper_action = data['gripper_state']
+        if gripper_action == 0:
+            gripper_action = -1
+        robot_obs = ee_pos +  ee_rot +  [gripper_width] + joint_positions+ [gripper_action]
+        
+        robot_obs =  np.array(robot_obs)
+        
+        return robot_obs
 
-    #     Args:
-    #         abs_datasets_dir: Absolute path of the directory containing the dataset.
+    def _build_file_indices_lang(self, abs_datasets_dir: Path) -> Tuple[np.ndarray, List, np.ndarray]:
+        """
+        This method builds the mapping from index to file_name used for loading the episodes of the language dataset.
 
-    #     Returns:
-    #         episode_lookup: Mapping from training example index to episode (file) index.
-    #         lang_lookup: Mapping from training example to index of language instruction.
-    #         lang_ann: Language embeddings.
-    #     """
-    #     assert abs_datasets_dir.is_dir()
+        Args:
+            abs_datasets_dir: Absolute path of the directory containing the dataset.
 
-    #     episode_lookup = []
+        Returns:
+            episode_lookup: Mapping from training example index to episode (file) index.
+            lang_lookup: Mapping from training example to index of language instruction.
+            lang_ann: Language embeddings.
+        """
+        assert abs_datasets_dir.is_dir()
+        def check_multiple(name):
+            patterns = str(name).split('/')[-1].split('.')[0]
+            if int(patterns) % 24 == 0:
+                # print(name, patterns)
+                return True
+            else:
+                return False
 
-    #     try:
-    #         print("trying to load lang data from: ", abs_datasets_dir / self.lang_folder / "auto_lang_ann.npy")
-    #         lang_data = np.load(abs_datasets_dir / self.lang_folder / "auto_lang_ann.npy", allow_pickle=True).item()
-    #     except Exception:
-    #         print("Exception, trying to load lang data from: ", abs_datasets_dir / "auto_lang_ann.npy")
-    #         lang_data = np.load(abs_datasets_dir / "auto_lang_ann.npy", allow_pickle=True).item()
+        episode_lookup = []
+   
+        for i in range(len(self.files)):
+            
+            traj = self.files[i]
+            folder = traj / 'trajectory'
+            files = sorted(list(filter(check_multiple, list(folder.glob("*.json")))))
+            for idx in range(0, len(files) + 1 - self.min_window_size):
+                episode_lookup.append((i,idx))
+                
+            
+        
+        # print("keys: ", keys)
+        
+        
+                
+        # try:
+        #     print("trying to load lang data from: ", abs_datasets_dir / self.lang_folder / "auto_lang_ann.npy")
+        #     lang_data = np.load(abs_datasets_dir / self.lang_folder / "auto_lang_ann.npy", allow_pickle=True).item()
+        # except Exception:
+        #     print("Exception, trying to load lang data from: ", abs_datasets_dir / "auto_lang_ann.npy")
+        #     lang_data = np.load(abs_datasets_dir / "auto_lang_ann.npy", allow_pickle=True).item()
 
-    #     ep_start_end_ids = lang_data["info"]["indx"]  # each of them are 64
-    #     lang_ann = lang_data["language"]["emb"]  # length total number of annotations
-    #     lang_lookup = []
-    #     for i, (start_idx, end_idx) in enumerate(ep_start_end_ids):
-    #         if self.pretrain:
-    #             start_idx = max(start_idx, end_idx + 1 - self.min_window_size - self.aux_lang_loss_window)
-    #         assert end_idx >= self.max_window_size
-    #         cnt = 0
-    #         for idx in range(start_idx, end_idx + 1 - self.min_window_size):
-    #             if cnt % self.skip_frames == 0:
-    #                 lang_lookup.append(i)
-    #                 episode_lookup.append(idx)
-    #             cnt += 1
+        # ep_start_end_ids = lang_data["info"]["indx"]  # each of them are 64
+        # lang_ann = lang_data["language"]["emb"]  # length total number of annotations
+        # lang_lookup = []
+        # for i, (start_idx, end_idx) in enumerate(ep_start_end_ids):
+        #     if self.pretrain:
+        #         start_idx = max(start_idx, end_idx + 1 - self.min_window_size - self.aux_lang_loss_window)
+        #     assert end_idx >= self.max_window_size
+        #     cnt = 0
+        #     for idx in range(start_idx, end_idx + 1 - self.min_window_size):
+        #         if cnt % self.skip_frames == 0:
+        #             lang_lookup.append(i)
+        #             episode_lookup.append(idx)
+        #         cnt += 1
 
-    #     return np.array(episode_lookup), lang_lookup, lang_ann
+        return np.array(episode_lookup)
 
     # def _build_file_indices(self, abs_datasets_dir: Path) -> np.ndarray:
     #     """

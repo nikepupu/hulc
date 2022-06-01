@@ -8,7 +8,7 @@ import pyhash
 import torch
 from torch.utils.data import Dataset
 
-from hulc.datasets.utils.episode_utils import (
+from hulc.datasets.utils.arnold_episode_utils import (
     get_state_info_dict,
     process_actions,
     process_depth,
@@ -76,13 +76,15 @@ class ArnoldBaseDataset(Dataset):
         self.proprio_state = proprio_state
         self.transforms = transforms
         self.with_lang = key == "lang"
-        self.relative_actions = "rel_actions" in self.observation_space["actions"]
+        self.relative_actions = False#"rel_actions" in self.observation_space["actions"]
 
         self.pad = pad
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.abs_datasets_dir = datasets_dir
-      
+        
+        self.length = len(list(filter(lambda x: x.is_dir, Path(self.abs_datasets_dir).glob("*"))))
+
         self.aux_lang_loss_window = aux_lang_loss_window
         # assert "validation" in self.abs_datasets_dir.as_posix() or "training" in self.abs_datasets_dir.as_posix()
         self.validation = "validation" in self.abs_datasets_dir.as_posix()
@@ -162,20 +164,37 @@ class ArnoldBaseDataset(Dataset):
         """
         
         window_diff = self.max_window_size - self.min_window_size
-        if len(self.episode_lookup) <= idx + window_diff:
-            # last episode
+        if self.episode_lookup[idx][0] != self.episode_lookup[idx +self.min_window_size][0]:
             max_window = self.min_window_size + len(self.episode_lookup) - idx - 1
-        elif self.episode_lookup[idx + window_diff] != self.episode_lookup[idx] + window_diff:
-            # less than max_episode steps until next episode
-            steps_to_next_episode = int(
-                np.nonzero(
-                    self.episode_lookup[idx : idx + window_diff + 1]
-                    - (self.episode_lookup[idx] + np.arange(window_diff + 1))
-                )[0][0]
-            )
+
+        elif self.episode_lookup[idx + self.min_window_size][0] != self.episode_lookup[idx +self.max_window_size][0]:
+            file_index = self.episode_lookup[idx][0]
+            for i in range(self.min_window_size, self.max_window_size):
+                if self.episode_lookup[idx + i][0] == file_index:
+                    steps_to_next_episode = i
+            
             max_window = min(self.max_window_size, (self.min_window_size + steps_to_next_episode - 1))
         else:
             max_window = self.max_window_size
+
+        # if len(self.episode_lookup) <= idx + window_diff:
+        #     # last episode
+        #     max_window = self.min_window_size + len(self.episode_lookup) - idx - 1
+        # print("episode lookup: ", self.episode_lookup[idx + window_diff])
+        # if self.episode_lookup[idx + window_diff] != self.episode_lookup[idx] + window_diff:
+        #     # less than max_episode steps until next episode
+        #     steps_to_next_episode = int(
+        #         np.nonzero(
+        #             self.episode_lookup[idx : idx + window_diff + 1]
+        #             - (self.episode_lookup[idx] + np.arange(window_diff + 1))
+        #         )[0][0]
+        #     )
+        #     max_window = min(self.max_window_size, (self.min_window_size + steps_to_next_episode - 1))
+        # else:
+        #     max_window = self.max_window_size
+        
+
+        
 
         if self.validation:
             # in validation step, repeat the window sizes for each epoch.
@@ -188,7 +207,7 @@ class ArnoldBaseDataset(Dataset):
         Returns:
             Size of the dataset.
         """
-        return len(self.episode_lookup)
+        return self.length
 
     def _get_pad_size(self, sequence: Dict) -> int:
         """

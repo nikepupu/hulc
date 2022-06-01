@@ -102,14 +102,14 @@ class ArnoldDataModule(pl.LightningDataModule):
                 dataset, datasets_dir=self.training_dir, #transforms=self.train_transforms
             )
            
-            # val_dataset = hydra.utils.instantiate(dataset, datasets_dir=self.val_dir,# transforms=self.val_transforms
-            # )
+            val_dataset = hydra.utils.instantiate(dataset, datasets_dir=self.val_dir,# transforms=self.val_transforms
+            )
             if self.use_shm:
                 train_dataset.setup_shm_lookup(train_shm_lookup)
                 # val_dataset.setup_shm_lookup(val_shm_lookup)
             key = dataset.key
             self.train_datasets[key] = train_dataset
-            # self.val_datasets[key] = val_dataset
+            self.val_datasets[key] = val_dataset
             self.modalities.append(key)
 
     def train_dataloader(self):

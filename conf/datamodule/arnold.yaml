@@ -1,7 +1,7 @@
 defaults:
   - datasets: arnold
   - transforms: rand_shift
-  - proprioception_dims: robot_no_joints #robot_full
+  - proprioception_dims: arnold_robot_full
   - observation_space: arnold
 _target_: hulc.datasets.arnold_data_module.ArnoldDataModule
 _recursive_: false
