@@ -34,7 +34,7 @@ def train(cfg: DictConfig) -> None:
     # sets seeds for numpy, torch, python.random and PYTHONHASHSEED.
     seed_everything(cfg.seed, workers=True)  # type: ignore
     datamodule = hydra.utils.instantiate(cfg.datamodule)
-    print("cfg.model: ", cfg.model)
+    # print("cfg.model: ", cfg.model)
     model = hydra.utils.instantiate(cfg.model)
     # chk = get_last_checkpoint(Path.cwd())
 

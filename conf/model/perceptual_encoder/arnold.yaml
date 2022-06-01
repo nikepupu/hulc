@@ -1,0 +1,15 @@
+_target_: hulc.models.perceptual_encoders.arnold_concat_encoders.ArnoldConcatEncoders
+_recursive_: false
+
+defaults:
+ - rgb0: default
+ - rgb1: default
+ - rgb2: default
+ - rgb3: default
+ - depth0: default
+ - depth1: default
+ - depth2: default
+ - depth3: default
+ - proprio: none
+ - tactile: none
+ - state_decoder: none
