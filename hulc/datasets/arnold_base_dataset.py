@@ -37,7 +37,7 @@ def get_validation_window_size(idx: int, min_window_size: int, max_window_size: 
     return min_window_size + hasher(str(idx)) % window_range
 
 
-class BaseDataset(Dataset):
+class ArnoldBaseDataset(Dataset):
     """
     Abstract dataset base class.
 
@@ -81,17 +81,17 @@ class BaseDataset(Dataset):
         self.pad = pad
         self.batch_size = batch_size
         self.num_workers = num_workers
+        self.abs_datasets_dir = datasets_dir
+      
+        self.aux_lang_loss_window = aux_lang_loss_window
+        # assert "validation" in self.abs_datasets_dir.as_posix() or "training" in self.abs_datasets_dir.as_posix()
+        self.validation = "validation" in self.abs_datasets_dir.as_posix()
+        assert self.abs_datasets_dir.is_dir()
+        logger.info(f"loading dataset at {self.abs_datasets_dir}")
+        logger.info("finished loading dataset")
+
         self.min_window_size = min_window_size
         self.max_window_size = max_window_size
-        self.abs_datasets_dir = datasets_dir
-        # self.lang_folder = lang_folder  # if self.with_lang else None
-        # self.aux_lang_loss_window = aux_lang_loss_window
-        # assert "validation" in self.abs_datasets_dir.as_posix() or "training" in self.abs_datasets_dir.as_posix()
-        # self.validation = "validation" in self.abs_datasets_dir.as_posix()
-        # assert self.abs_datasets_dir.is_dir()
-        # logger.info(f"loading dataset at {self.abs_datasets_dir}")
-        # logger.info("finished loading dataset")
-        
 
     def __getitem__(self, idx: Union[int, Tuple[int, int]]) -> Dict:
         """
@@ -160,6 +160,7 @@ class BaseDataset(Dataset):
         Returns:
             Window size.
         """
+        
         window_diff = self.max_window_size - self.min_window_size
         if len(self.episode_lookup) <= idx + window_diff:
             # last episode

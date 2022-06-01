@@ -23,7 +23,7 @@ from hulc.utils.utils import (
 logger = logging.getLogger(__name__)
 
 
-@hydra.main(config_path="../conf", config_name="config")
+@hydra.main(config_path="../conf", config_name="config_arnold")
 def train(cfg: DictConfig) -> None:
     """
     This is called to start a training.
@@ -34,43 +34,45 @@ def train(cfg: DictConfig) -> None:
     # sets seeds for numpy, torch, python.random and PYTHONHASHSEED.
     seed_everything(cfg.seed, workers=True)  # type: ignore
     datamodule = hydra.utils.instantiate(cfg.datamodule)
-    chk = get_last_checkpoint(Path.cwd())
+    print("cfg.model: ", cfg.model)
+    model = hydra.utils.instantiate(cfg.model)
+    # chk = get_last_checkpoint(Path.cwd())
 
-    # Load Model
-    if chk is not None:
-        model = getattr(models_m, cfg.model["_target_"].split(".")[-1]).load_from_checkpoint(chk.as_posix())
-    else:
-        model = hydra.utils.instantiate(cfg.model)
-        if "pretrain_chk" in cfg:
-            initialize_pretrained_weights(model, cfg)
+    # # Load Model
+    # if chk is not None:
+    #     model = getattr(models_m, cfg.model["_target_"].split(".")[-1]).load_from_checkpoint(chk.as_posix())
+    # else:
+    #     model = hydra.utils.instantiate(cfg.model)
+    #     if "pretrain_chk" in cfg:
+    #         initialize_pretrained_weights(model, cfg)
 
-    log_rank_0(f"Training with the following config:\n{OmegaConf.to_yaml(cfg)}")
-    log_rank_0("Repo commit hash: {}".format(get_git_commit_hash(Path(hydra.utils.to_absolute_path(__file__)))))
-    log_rank_0(print_system_env_info())
+    # log_rank_0(f"Training with the following config:\n{OmegaConf.to_yaml(cfg)}")
+    # log_rank_0("Repo commit hash: {}".format(get_git_commit_hash(Path(hydra.utils.to_absolute_path(__file__)))))
+    # log_rank_0(print_system_env_info())
 
-    train_logger = setup_logger(cfg, model)
-    callbacks = setup_callbacks(cfg.callbacks)
-    lr_logger = LearningRateMonitor(logging_interval="step")
-    callbacks.append(lr_logger)
+    # train_logger = setup_logger(cfg, model)
+    # callbacks = setup_callbacks(cfg.callbacks)
+    # lr_logger = LearningRateMonitor(logging_interval="step")
+    # callbacks.append(lr_logger)
 
-    trainer_args = {
-        **cfg.trainer,
-        "logger": train_logger,
-        "callbacks": callbacks,
-        "benchmark": False,
-    }
+    # trainer_args = {
+    #     **cfg.trainer,
+    #     "logger": train_logger,
+    #     "callbacks": callbacks,
+    #     "benchmark": False,
+    # }
     
-    # Configure multi-GPU training
-    if is_multi_gpu_training(trainer_args["gpus"]):  # type: ignore
-        trainer_args["strategy"] = "ddp"
-        if not cfg.slurm:
-            modify_argv_hydra()
-    print("trainer _args, ", trainer_args)
-    trainer = Trainer(**trainer_args)
-    print("trainer _args done, ", trainer_args)
+    # # Configure multi-GPU training
+    # if is_multi_gpu_training(trainer_args["gpus"]):  # type: ignore
+    #     trainer_args["strategy"] = "ddp"
+    #     if not cfg.slurm:
+    #         modify_argv_hydra()
+    # print("trainer _args, ", trainer_args)
+    # trainer = Trainer(**trainer_args)
+    # print("trainer _args done, ", trainer_args)
     
-    # Start training
-    trainer.fit(model, datamodule=datamodule, ckpt_path=chk)  # type: ignore
+    # # Start training
+    # trainer.fit(model, datamodule=datamodule, ckpt_path=chk)  # type: ignore
 
 
 def setup_callbacks(callbacks_cfg: DictConfig) -> List[Callback]:
