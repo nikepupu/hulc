@@ -665,6 +665,7 @@ class ArnoldHulc(pl.LightningModule):
             train_dataset = self.trainer.datamodule.train_datasets["lang"]  # type: ignore
             val_dataset = self.trainer.datamodule.val_datasets["lang"]  # type: ignore
             self.val_dataset = val_dataset
+            print("train_dataset.abs_datasets_dir", train_dataset.abs_datasets_dir)
             # lang_data_train = np.load(
             #     train_dataset.abs_datasets_dir / train_dataset.lang_folder / "auto_lang_ann.npy", allow_pickle=True
             # ).item()
@@ -683,6 +684,7 @@ class ArnoldHulc(pl.LightningModule):
             # )
             # train_lang_tasks = list(np.array(lang_data_train["language"]["task"])[train_lang_ids])
             # train_lang_task_ids = [list(set(train_lang_tasks)).index(task) for task in train_lang_tasks]
+            
 
             # self.task_to_id = {k: v for k, v in zip(set(train_lang_tasks), set(train_lang_task_ids))}
             # self.train_lang_task_ids = np.array(train_lang_task_ids)

@@ -6,7 +6,7 @@ then
 
     echo "Downloading task_D_D ..."
     wget http://calvin.cs.uni-freiburg.de/dataset/task_D_D.zip
-    unzip task_D_D.zip && rm task_D_D.zip
+    unzip task_D_D.zip # && rm task_D_D.zip
     mv task_A_A task_D_D
     echo "saved folder: task_D_D"
 elif [ "$1" = "ABC" ]

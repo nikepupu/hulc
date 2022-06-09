@@ -665,6 +665,10 @@ class Hulc(pl.LightningModule):
             train_dataset = self.trainer.datamodule.train_datasets["lang"]  # type: ignore
             val_dataset = self.trainer.datamodule.val_datasets["lang"]  # type: ignore
             self.val_dataset = val_dataset
+            # print("folder", train_dataset.abs_datasets_dir / train_dataset.lang_folder / "auto_lang_ann.npy")
+            # exit()
+            import pdb
+            pdb.set_trace()
             lang_data_train = np.load(
                 train_dataset.abs_datasets_dir / train_dataset.lang_folder / "auto_lang_ann.npy", allow_pickle=True
             ).item()
@@ -880,7 +884,7 @@ class Hulc(pl.LightningModule):
             pp_dist = self.dist.get_dist(pp_state)
             sampled_plan = self.dist.sample_latent_plan(pp_dist)
         self.action_decoder.clear_hidden_state()
-        return sampled_plan, latent_goal
+        return sampled_plan, latent_goal 
 
     def get_pp_plan_lang(self, obs: dict, goal: dict) -> Tuple[torch.Tensor, torch.Tensor]:
         """

@@ -111,6 +111,8 @@ class LogisticDecoderRNN(ActionDecoder):
         logit_probs, log_scales, means, gripper_act, self.hidden_state = self(
             latent_plan, perceptual_emb, latent_goal, self.hidden_state
         )
+        import pdb
+        pdb.set_trace()
         pred_actions = self._sample(logit_probs, log_scales, means, gripper_act)
         if self.gripper_control:
             pred_actions_world = tcp_to_world_frame(pred_actions, robot_obs)
@@ -127,6 +129,8 @@ class LogisticDecoderRNN(ActionDecoder):
         robot_obs: torch.Tensor,
     ) -> torch.Tensor:  # type:  ignore
         logit_probs, log_scales, means, gripper_act, _ = self(latent_plan, perceptual_emb, latent_goal)
+        # import pdb
+        # pdb.set_trace()
         if self.gripper_control:
             actions_tcp = world_to_tcp_frame(actions, robot_obs)
             return self._loss(logit_probs, log_scales, means, gripper_act, actions_tcp)

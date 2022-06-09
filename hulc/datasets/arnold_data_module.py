@@ -42,8 +42,8 @@ class ArnoldDataModule(pl.LightningDataModule):
             root_data_path = Path(hulc.__file__).parent / root_data_path
         # self.training_dir = root_data_path / "trajectory"
         # self.val_dir = root_data_path / "validation"
-        self.training_dir = Path('/media/nikepupu/fast/frame24/pickup_object')
-        self.val_dir = Path('/media/nikepupu/fast/frame24/pickup_object')
+        self.training_dir = root_data_path#Path('/media/nikepupu/fast/frame24/pickup_object')
+        self.val_dir = root_data_path#Path('/media/nikepupu/fast/frame24/pickup_object')
         self.shuffle_val = shuffle_val
         self.modalities: List[str] = []
         self.transforms = transforms

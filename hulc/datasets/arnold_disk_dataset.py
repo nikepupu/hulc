@@ -6,7 +6,7 @@ import pickle
 from typing import Any, Dict, List, Tuple
 
 from importlib_metadata import files
-
+import torch
 import numpy as np
 import json
 from hulc.datasets.arnold_base_dataset import ArnoldBaseDataset
@@ -57,7 +57,7 @@ class ArnoldDiskDataset(ArnoldBaseDataset):
         # self.pretrain = pretrain
         # self.skip_frames = skip_frames
         self.episode_lookup = self._build_file_indices_lang(self.abs_datasets_dir)
-        self._load_episode(200, 10)
+        # self._load_episode(200, 10)
         # if self.with_lang:
         #     self.episode_lookup, self.lang_lookup, self.lang_ann = self._build_file_indices_lang(self.abs_datasets_dir)
         # else:
@@ -151,6 +151,9 @@ class ArnoldDiskDataset(ArnoldBaseDataset):
         with open(langauge_file) as f:
             annotation = json.load(f)['language_annotation'][0]
             episodes['language'] = annotation
+        
+        
+        episodes['embedding'] = torch.load(traj/ 'language_embedding.pt')[0]
 
         return episodes
         # start_idx = self.episode_lookup[idx]
@@ -210,9 +213,9 @@ class ArnoldDiskDataset(ArnoldBaseDataset):
             
             traj = self.files[i]
             folder = traj / 'trajectory'
-            files = sorted(list(filter(check_multiple, list(folder.glob("*.json")))))
-            for idx in range(0, len(files) + 1 - self.min_window_size):
-                episode_lookup.append((i,idx))
+            json_files = sorted(list(filter(check_multiple, list(folder.glob("*.json")))))
+            for idx in range(0, len(json_files) + 1 - self.min_window_size):
+                episode_lookup.append((i,idx)) # i: file index, idx frame start index
                 
             
         

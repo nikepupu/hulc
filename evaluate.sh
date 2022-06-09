@@ -1,0 +1,1 @@
+python hulc/evaluation/evaluate_policy.py --dataset_path /media/nikepupu/fast/hulc/dataset/task_D_D  --train_folder /media/nikepupu/fast/runs/2022-06-09/00-07-44/ --checkpoint /media/nikepupu/fast/hulc/checkpoints/HULC_D_D/HULC_D_D.ckpt 
