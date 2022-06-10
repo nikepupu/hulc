@@ -6,13 +6,13 @@ defaults:
   - visual_goal: default
   - language_encoder: none
   - language_goal: default
-  - action_decoder: hulc_default
+  - action_decoder: arnold_default
   - optimizer: adam
   - lr_scheduler: constant
   - lang_decoder: none
   - lang_discriminator: none
   - clip_proj: default
-  - /annotations@val_instructions: new_playtable_validation
+  # - /annotations@val_instructions: new_playtable_validation
 
 _target_: hulc.models.arnold_hulc.ArnoldHulc
 _recursive_: false
@@ -25,6 +25,6 @@ lang_recons: false
 lang_recon_beta: ${loss.lang_recon_beta}
 lang_contrastive: false
 lang_contrastive_beta: ${loss.lang_contrastive_beta}
-replan_freq: 5
-img_lang_matching_clip: true
+replan_freq: 10
+img_lang_matching_clip: false
 lang_clip_beta: ${loss.lang_clip_beta}

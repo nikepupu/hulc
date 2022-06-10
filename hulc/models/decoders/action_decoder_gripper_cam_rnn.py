@@ -24,7 +24,7 @@ def log_sum_exp(x):
     return m + torch.log(torch.sum(torch.exp(x - m2), dim=axis))
 
 
-class LogisticDecoderRNN(ActionDecoder):
+class ActionDecoderGripperCamRNN(ActionDecoder):
     def __init__(
         self,
         perceptual_features: int,
@@ -40,24 +40,21 @@ class LogisticDecoderRNN(ActionDecoder):
         load_action_bounds: bool,
         num_classes: int,
         gripper_alpha: float,
+        perceptual_emb_slice: tuple,
         policy_rnn_dropout_p: float,
         num_layers: int,
         rnn_model: str,
         gripper_control: bool,
         discrete_gripper: bool,
-        perceptual_emb_slice: Optional[tuple] = None,
     ):
-        super(LogisticDecoderRNN, self).__init__()
+        super(ActionDecoderGripperCamRNN, self).__init__()
         self.n_dist = n_mixtures
         self.gripper_control = gripper_control
         self.discrete_gripper = discrete_gripper
         self.log_scale_min = log_scale_min
         self.num_classes = num_classes
         self.plan_features = plan_features
-        if perceptual_emb_slice is not None:
-            in_features = (perceptual_emb_slice[1] - perceptual_emb_slice[0]) + latent_goal_features + plan_features
-        else:
-            in_features = perceptual_features + latent_goal_features + plan_features
+        in_features = (perceptual_emb_slice[1] - perceptual_emb_slice[0]) + latent_goal_features + plan_features
         self.out_features = out_features - 1 if discrete_gripper else out_features  # for discrete gripper act
         self.gripper_alpha = gripper_alpha
         self.rnn = eval(rnn_model)
@@ -111,8 +108,6 @@ class LogisticDecoderRNN(ActionDecoder):
         logit_probs, log_scales, means, gripper_act, self.hidden_state = self(
             latent_plan, perceptual_emb, latent_goal, self.hidden_state
         )
-        import pdb
-        pdb.set_trace()
         pred_actions = self._sample(logit_probs, log_scales, means, gripper_act)
         # if self.gripper_control:
         #     pred_actions_world = tcp_to_world_frame(pred_actions, robot_obs)
@@ -129,8 +124,6 @@ class LogisticDecoderRNN(ActionDecoder):
         robot_obs: torch.Tensor,
     ) -> torch.Tensor:  # type:  ignore
         logit_probs, log_scales, means, gripper_act, _ = self(latent_plan, perceptual_emb, latent_goal)
-        # import pdb
-        # pdb.set_trace()
         # if self.gripper_control:
         #     actions_tcp = world_to_tcp_frame(actions, robot_obs)
         #     return self._loss(logit_probs, log_scales, means, gripper_act, actions_tcp)
@@ -268,8 +261,8 @@ class LogisticDecoderRNN(ActionDecoder):
         latent_goal: torch.Tensor,
         h_0: Optional[torch.Tensor] = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
-        if self.perceptual_emb_slice is not None:
-            perceptual_emb = perceptual_emb[..., slice(*self.perceptual_emb_slice)]
+
+        perceptual_emb = perceptual_emb[..., slice(*self.perceptual_emb_slice)]
         batch_size, seq_len = perceptual_emb.shape[0], perceptual_emb.shape[1]
         latent_plan = latent_plan.unsqueeze(1).expand(-1, seq_len, -1)
         latent_goal = latent_goal.unsqueeze(1).expand(-1, seq_len, -1)
@@ -288,4 +281,4 @@ class LogisticDecoderRNN(ActionDecoder):
         logit_probs = probs.view(batch_size, seq_len, self.out_features, self.n_dist)
         means = means.view(batch_size, seq_len, self.out_features, self.n_dist)
         log_scales = log_scales.view(batch_size, seq_len, self.out_features, self.n_dist)
-        return logit_probs, log_scales, means, gripper_act, h_n
+        return logit_probs, log_scales, means, gripper_act, 

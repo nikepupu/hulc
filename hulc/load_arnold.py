@@ -19,7 +19,12 @@ from hulc.utils.utils import (
     initialize_pretrained_weights,
     print_system_env_info,
 )
+import sys
+import os
+arnold_args = "trainer.gpus=-1 datamodule.root_data_dir=/media/nikepupu/fast/frame12update/pickup_object datamodule/datasets=arnold"
+sys.argv[2:] = arnold_args.split(" ")
 
+# os.environ['CUDA_LAUNCH_BLOCKING']='1'
 logger = logging.getLogger(__name__)
 
 
@@ -36,7 +41,7 @@ def train(cfg: DictConfig) -> None:
     datamodule = hydra.utils.instantiate(cfg.datamodule)
     # datamodule.setup()
     # datamodule.train_datasets['vis'][0]
-    # print("cfg.model: ", cfg.model)
+    print("cfg.model: ", cfg.model)
     model = hydra.utils.instantiate(cfg.model)
     chk = None
     # if "pretrain_chk" in cfg:

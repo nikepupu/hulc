@@ -53,6 +53,7 @@ class VisionNetwork(nn.Module):
         self.ln = nn.LayerNorm(visual_features)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x = x/255.0
         x = self.conv_model(x)
         x = self.spatial_softmax(x)
         if self.use_sinusoid:

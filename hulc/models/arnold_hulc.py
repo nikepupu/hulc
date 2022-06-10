@@ -75,7 +75,7 @@ class ArnoldHulc(pl.LightningModule):
         optimizer: DictConfig,
         lr_scheduler: DictConfig,
         distribution: DictConfig,
-        val_instructions: DictConfig,
+        # val_instructions: DictConfig,
         img_lang_matching_clip: bool,
         lang_clip_beta: float,
         replan_freq: int = 30,

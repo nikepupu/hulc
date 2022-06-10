@@ -44,7 +44,7 @@ class ArnoldDiskDataset(ArnoldBaseDataset):
         **kwargs: Any,
     ):
         super().__init__(*args, **kwargs)
-        print("self.abs_datasets_dir: ", self.abs_datasets_dir)
+       
         self.files = sorted(Path(self.abs_datasets_dir).glob('*'))
         # self._load_episode(0)
         # self.save_format = save_format
@@ -55,7 +55,7 @@ class ArnoldDiskDataset(ArnoldBaseDataset):
         # else:
         #     raise NotImplementedError
         # self.pretrain = pretrain
-        # self.skip_frames = skip_frames
+        self.skip_frames = skip_frames
         self.episode_lookup = self._build_file_indices_lang(self.abs_datasets_dir)
         # self._load_episode(200, 10)
         # if self.with_lang:
@@ -90,7 +90,7 @@ class ArnoldDiskDataset(ArnoldBaseDataset):
         Returns:
             episode: Dict of numpy arrays containing the episode where keys are the names of modalities.
         """
-        start_file, start_index = self.episode_lookup[idx]
+        start_file, start_index, steps_to_next_episode = self.episode_lookup[idx]
         end_index = start_index + window_size
         
         keys = list(chain(*self.observation_space.values()))
@@ -100,7 +100,7 @@ class ArnoldDiskDataset(ArnoldBaseDataset):
         # print("keys: ", keys)
         def check_multiple(name):
             patterns = str(name).split('/')[-1].split('.')[0]
-            if int(patterns) % 24 == 0:
+            if int(patterns) % self.skip_frames == 0:
                 # print(name, patterns)
                 return True
             else:
@@ -130,10 +130,12 @@ class ArnoldDiskDataset(ArnoldBaseDataset):
             loaded_jsons.append(data)
 
         loaded_jsons = loaded_jsons[start_index:end_index]
-
-        robot_pos = np.stack([ np.array(data['robot_state'])[:, 0] for data in loaded_jsons ])
+        # if len(loaded_jsons) == 39:
+        #     print("hello")
+        robot_pos = np.stack([ np.array(data['robot_state'])[:7, 0] for data in loaded_jsons ])
         episodes['robot_pos'] = robot_pos
         episodes['actions'] = robot_pos
+        episodes["original_action"] = np.stack([ np.array(data['applied_actions']["joint_positions"][:7]) for data in loaded_jsons ])
         # print("robot_pos: ", robot_pos.shape)
         robot_vel = np.stack([ np.array(data['robot_state'])[:, 1] for data in loaded_jsons ])
         episodes['robot_vel'] = robot_vel
@@ -148,12 +150,13 @@ class ArnoldDiskDataset(ArnoldBaseDataset):
         episodes['robot_obs'] = robot_obs
 
         langauge_file = traj / 'mission.json'
-        with open(langauge_file) as f:
-            annotation = json.load(f)['language_annotation'][0]
-            episodes['language'] = annotation
+        # with open(langauge_file) as f:
+            # annotation = json.load(f)['language_annotation'][0]
+        
+        episodes['language'] = torch.load(traj/ 'language_embedding.pt')[0]
         
         
-        episodes['embedding'] = torch.load(traj/ 'language_embedding.pt')[0]
+        # episodes['embedding'] = torch.load(traj/ 'language_embedding.pt')[0]
 
         return episodes
         # start_idx = self.episode_lookup[idx]
@@ -177,7 +180,7 @@ class ArnoldDiskDataset(ArnoldBaseDataset):
         gripper_width =  data['robot_state'][8][0] + data['robot_state'][7][0]
         joint_positions = [ item[0] for item in  data['robot_state']]
       
-        gripper_action = data['gripper_state']
+        gripper_action = int(data['applied_actions']['joint_positions'][8] > 3.9)
         if gripper_action == 0:
             gripper_action = -1
         robot_obs = ee_pos +  ee_rot +  [gripper_width] + joint_positions+ [gripper_action]
@@ -201,7 +204,7 @@ class ArnoldDiskDataset(ArnoldBaseDataset):
         assert abs_datasets_dir.is_dir()
         def check_multiple(name):
             patterns = str(name).split('/')[-1].split('.')[0]
-            if int(patterns) % 24 == 0:
+            if int(patterns) % self.skip_frames == 0:
                 # print(name, patterns)
                 return True
             else:
@@ -214,8 +217,8 @@ class ArnoldDiskDataset(ArnoldBaseDataset):
             traj = self.files[i]
             folder = traj / 'trajectory'
             json_files = sorted(list(filter(check_multiple, list(folder.glob("*.json")))))
-            for idx in range(0, len(json_files) + 1 - self.min_window_size):
-                episode_lookup.append((i,idx)) # i: file index, idx frame start index
+            for idx in range(0, len(json_files) - self.min_window_size):
+                episode_lookup.append((i,idx, len(json_files)-idx-1 )) # i: file index, idx frame start index, steps to next episode
                 
             
         

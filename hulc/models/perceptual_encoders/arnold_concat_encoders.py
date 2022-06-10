@@ -113,18 +113,18 @@ class ArnoldConcatEncoders(nn.Module):
 
         # depth_gripper = depth_imgs["depth_gripper"] if "depth_gripper" in depth_imgs else None
 
-        b, s, c, h, w = rgb_static.shape
-        rgb_static = rgb_static.reshape(-1, c, h, w)  # (batch_size * sequence_length, 3, 200, 200)
+        b, s, c, h, w = rgb0.shape
+        rgb0 = rgb0.reshape(-1, c, h, w)  # (batch_size * sequence_length, 3, 200, 200)
         # ------------ Vision Network ------------ #
-        encoded_imgs = self.rgb0_encoder(rgb_static)  # (batch*seq_len, 64)
+        encoded_imgs = self.rgb0_encoder(rgb0)  # (batch*seq_len, 64)
         encoded_imgs = encoded_imgs.reshape(b, s, -1)  # (batch, seq, 64)
 
         if depth0 is not None:
-            depth_static = torch.unsqueeze(depth_static, 2)
-            depth_static = depth_static.reshape(-1, 1, h, w)  # (batch_size * sequence_length, 3, 200, 200)
-            encoded_depth_static = self.depth0_encoder(depth_static)  # (batch*seq_len, 64)
-            encoded_depth_static = encoded_depth_static.reshape(b, s, -1)  # (batch, seq, 64)
-            encoded_imgs = torch.cat([encoded_imgs, encoded_depth_static], dim=-1)
+            depth0 = torch.unsqueeze(depth0, 2)
+            depth0 = depth0.reshape(-1, 1, h, w)  # (batch_size * sequence_length, 3, 200, 200)
+            encoded_depth_0 = self.depth0_encoder(depth0)  # (batch*seq_len, 64)
+            encoded_depth_0 = encoded_depth_0.reshape(b, s, -1)  # (batch, seq, 64)
+            encoded_imgs = torch.cat([encoded_imgs, encoded_depth_0], dim=-1)
 
         if rgb1 is not None:
             b, s, c, h, w = rgb1.shape

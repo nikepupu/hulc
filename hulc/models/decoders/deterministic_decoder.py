@@ -5,7 +5,7 @@ import torch
 import torch.nn as nn
 
 from hulc.models.decoders.action_decoder import ActionDecoder
-from hulc.models.decoders.utils.gripper_control import tcp_to_world_frame, world_to_tcp_frame
+# from hulc.models.decoders.utils.gripper_control import tcp_to_world_frame, world_to_tcp_frame
 
 logger = logging.getLogger(__name__)
 
@@ -70,14 +70,14 @@ class DeterministicDecoder(ActionDecoder):
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         pred_actions, _ = self(latent_plan, perceptual_emb, latent_goal)
         # loss
-        if self.gripper_control:
-            actions_tcp = world_to_tcp_frame(actions, robot_obs)
-            loss = self.criterion(pred_actions, actions_tcp)
-            pred_actions_world = tcp_to_world_frame(pred_actions, robot_obs)
-            return loss, pred_actions_world
-        else:
-            loss = self.criterion(pred_actions, actions)
-            return loss, pred_actions
+        # if self.gripper_control:
+        #     actions_tcp = world_to_tcp_frame(actions, robot_obs)
+        #     loss = self.criterion(pred_actions, actions_tcp)
+        #     pred_actions_world = tcp_to_world_frame(pred_actions, robot_obs)
+        #     return loss, pred_actions_world
+        # else:
+        loss = self.criterion(pred_actions, actions)
+        return loss, pred_actions
 
     def loss(
         self,
@@ -88,9 +88,9 @@ class DeterministicDecoder(ActionDecoder):
         robot_obs: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
         pred_actions, _ = self(latent_plan, perceptual_emb, latent_goal)
-        if self.gripper_control:
-            actions_tcp = world_to_tcp_frame(actions, robot_obs)
-            self.criterion(pred_actions, actions_tcp)
+        # if self.gripper_control:
+        #     actions_tcp = world_to_tcp_frame(actions, robot_obs)
+        #     self.criterion(pred_actions, actions_tcp)
         return self.criterion(pred_actions, actions)
 
     def act(

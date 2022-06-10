@@ -164,19 +164,33 @@ class ArnoldBaseDataset(Dataset):
         """
         
         window_diff = self.max_window_size - self.min_window_size
-        if self.episode_lookup[idx][0] != self.episode_lookup[idx +self.min_window_size][0]:
+        # len(self.episode_lookup) <= idx + window_diff:
+        if len(self.episode_lookup) <= idx + window_diff:
             max_window = self.min_window_size + len(self.episode_lookup) - idx - 1
 
-        elif self.episode_lookup[idx + self.min_window_size][0] != self.episode_lookup[idx +self.max_window_size][0]:
-            file_index = self.episode_lookup[idx][0]
-            for i in range(self.min_window_size, self.max_window_size):
-                if self.episode_lookup[idx + i][0] == file_index:
-                    steps_to_next_episode = i
-            
+        # if self.episode_lookup[idx][0] != self.episode_lookup[idx +self.max_window_size][0]:
+
+        elif self.episode_lookup[idx][0] != self.episode_lookup[idx +self.max_window_size][0]:
+             # less than max_episode steps until next episode
+            # file_index = self.episode_lookup[idx][0]
+            # for i in range(self.min_window_size, self.max_window_size):
+            #     if self.episode_lookup[idx + i][0] == file_index:
+            #         steps_to_next_episode = i
+            steps_to_next_episode = self.episode_lookup[idx][2]
+                
+
             max_window = min(self.max_window_size, (self.min_window_size + steps_to_next_episode - 1))
+
+        # elif self.episode_lookup[idx + self.min_window_size][0] != self.episode_lookup[idx +self.max_window_size][0]:
+        #     file_index = self.episode_lookup[idx][0]
+        #     for i in range(self.min_window_size, self.max_window_size):
+        #         if self.episode_lookup[idx + i][0] == file_index:
+        #             steps_to_next_episode = i
+            
+        #     max_window = min(self.max_window_size, (self.min_window_size + steps_to_next_episode - 1))
         else:
             max_window = self.max_window_size
-
+        assert max_window <= self.max_window_size
         # if len(self.episode_lookup) <= idx + window_diff:
         #     # last episode
         #     max_window = self.min_window_size + len(self.episode_lookup) - idx - 1
@@ -219,6 +233,9 @@ class ArnoldBaseDataset(Dataset):
         Returns:
             Number of frames to pad.
         """
+        # if self.max_window_size - len(sequence["actions"]) < 0:
+        #     print(self.max_window_size)
+        #     print(len(sequence["actions"]))
         return self.max_window_size - len(sequence["actions"])
 
     def _pad_sequence(self, seq: Dict, pad_size: int) -> Dict:
@@ -299,9 +316,6 @@ class ArnoldBaseDataset(Dataset):
         """
         if not self.with_lang:
             return info
-        use_for_aux_lang_loss = (
-            idx + self.aux_lang_loss_window >= len(self.lang_lookup)
-            or self.lang_lookup[idx] < self.lang_lookup[idx + self.aux_lang_loss_window]
-        )
+        use_for_aux_lang_loss = True
         info["use_for_aux_lang_loss"] = use_for_aux_lang_loss
         return info
