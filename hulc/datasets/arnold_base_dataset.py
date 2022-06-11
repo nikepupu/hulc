@@ -7,6 +7,7 @@ from omegaconf import DictConfig
 import pyhash
 import torch
 from torch.utils.data import Dataset
+from abc import ABCMeta, ABC
 
 from hulc.datasets.utils.arnold_episode_utils import (
     get_state_info_dict,
@@ -37,7 +38,7 @@ def get_validation_window_size(idx: int, min_window_size: int, max_window_size: 
     return min_window_size + hasher(str(idx)) % window_range
 
 
-class ArnoldBaseDataset(Dataset):
+class ArnoldBaseDataset(Dataset, ABC):
     """
     Abstract dataset base class.
 
@@ -83,11 +84,8 @@ class ArnoldBaseDataset(Dataset):
         self.num_workers = num_workers
         self.abs_datasets_dir = datasets_dir
         
-        self.length = len(list(filter(lambda x: x.is_dir, Path(self.abs_datasets_dir).glob("*"))))
-
         self.aux_lang_loss_window = aux_lang_loss_window
         # assert "validation" in self.abs_datasets_dir.as_posix() or "training" in self.abs_datasets_dir.as_posix()
-        self.validation = "validation" in self.abs_datasets_dir.as_posix()
         assert self.abs_datasets_dir.is_dir()
         logger.info(f"loading dataset at {self.abs_datasets_dir}")
         logger.info("finished loading dataset")

@@ -763,7 +763,7 @@ class ArnoldHulc(pl.LightningModule):
                     val_pred_lang_loss = self.lang_regression_loss(
                         seq_feat, dataset_batch["lang"], dataset_batch["use_for_aux_lang_loss"]
                     )
-                    self.log("val/lang_pred_loss", val_pred_lang_loss, sync_dist=True)
+                    self.log("val/lang_pred_loss", val_pred_lang_loss, sync_dist=True, prog_bar=True)
                 if self.img_lang_matching_clip:
                     val_pred_clip_loss = self.clip_loss(seq_feat, latent_goal, dataset_batch["use_for_aux_lang_loss"])
                     self.log("val/val_pred_clip_loss", val_pred_clip_loss, sync_dist=True)
@@ -795,10 +795,14 @@ class ArnoldHulc(pl.LightningModule):
                 "val_act/action_loss_pp",
                 val_total_act_loss_pp / len(self.trainer.datamodule.modalities),  # type:ignore
                 sync_dist=True,
+                prog_bar=True
             )
             output[f"sampled_plan_pp_{self.modality_scope}"] = sampled_plan_pp
             output[f"sampled_plan_pr_{self.modality_scope}"] = sampled_plan_pr
             output[f"idx_{self.modality_scope}"] = dataset_batch["idx"]
+            output["val_act/action_loss_pp"] = val_total_act_loss_pp.item()
+            output["pr_mae_mean"] = pr_mae_mean.item()
+            output["pp_mae_mean"] = pp_mae_mean.item()
 
         return output
 
@@ -927,6 +931,16 @@ class ArnoldHulc(pl.LightningModule):
     def on_validation_epoch_end(self) -> None:
         logger.info(f"Finished validation epoch {self.current_epoch}")
 
+    @rank_zero_only
+    def validation_epoch_end(self, outputs) -> None:
+        action_loss_pp = np.mean([item['val_act/action_loss_pp'] for item in outputs])
+        pp_mae_mean = np.mean([item['pp_mae_mean'] for item in outputs])
+        pr_mae_mean = np.mean([item['pr_mae_mean'] for item in outputs])
+
+        logger.info(f"Validation action_loss_pp: {action_loss_pp} ")
+        logger.info(f"Validation pp_mae_mean: {pp_mae_mean} ")
+        logger.info(f"Validation pp_mae_mean: {pr_mae_mean} ")
+        
     def clip_inference(self, obs: dict, goal: dict) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Get CLIP contrastive scores at inference time.

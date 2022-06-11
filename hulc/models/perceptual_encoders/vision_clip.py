@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import torchvision
 
 from hulc.models.perceptual_encoders.clip import load_clip
 
@@ -19,11 +20,14 @@ class VisionClip(nn.Module):
         if "RN50" in model_name:
             self.fc1 = nn.Linear(1024, 512)
             self.fc2 = nn.Linear(512, visual_features)
-        elif "ViT-B/32" in model_name:
+        elif "ViT-B" in model_name:
             self.fc1 = nn.Linear(512, 256)
             self.fc2 = nn.Linear(256, visual_features)
 
+        self.resizer = torchvision.transforms.Resize((224, 224))
+
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x = self.resizer(x)
         x = self.clip_model.encode_image(x)  # type:ignore
         output = F.relu(self.fc1(x))  # batch, 512
         output = self.fc2(output)  # batch, 64

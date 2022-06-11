@@ -2,7 +2,7 @@ import logging
 import os
 from pathlib import Path
 from typing import Dict, List
-
+import json
 import hydra
 import numpy as np
 from omegaconf import DictConfig, OmegaConf
@@ -40,6 +40,14 @@ class ArnoldDataModule(pl.LightningDataModule):
         root_data_path = Path(root_data_dir)
         if not root_data_path.is_absolute():
             root_data_path = Path(hulc.__file__).parent / root_data_path
+
+        try:
+            filename = str(root_data_path.parent / f"{root_data_path.stem}_split.json")
+            with open(filename) as f:
+                self.data_split = json.load(f)
+        except:
+            raise FileNotFoundError(f"Cannot load {filename}! Please make sure name is consistent!")
+
         # self.training_dir = root_data_path / "trajectory"
         # self.val_dir = root_data_path / "validation"
         self.training_dir = root_data_path#Path('/media/nikepupu/fast/frame24/pickup_object')
@@ -99,10 +107,10 @@ class ArnoldDataModule(pl.LightningDataModule):
         for _, dataset in self.datasets_cfg.items():
            
             train_dataset = hydra.utils.instantiate(
-                dataset, datasets_dir=self.training_dir, #transforms=self.train_transforms
+                dataset, datasets_dir=self.training_dir, data_split=self.data_split["training"], validation=False  #transforms=self.train_transforms
             )
            
-            val_dataset = hydra.utils.instantiate(dataset, datasets_dir=self.val_dir,# transforms=self.val_transforms
+            val_dataset = hydra.utils.instantiate(dataset, datasets_dir=self.val_dir, data_split=self.data_split["validation"], validation=True # transforms=self.val_transforms
             )
             if self.use_shm:
                 train_dataset.setup_shm_lookup(train_shm_lookup)
@@ -113,15 +121,17 @@ class ArnoldDataModule(pl.LightningDataModule):
             self.modalities.append(key)
 
     def train_dataloader(self):
-        return {
+        train_dataloaders = {
             key: DataLoader(
                 dataset,
                 batch_size=dataset.batch_size,
                 num_workers=dataset.num_workers,
                 pin_memory=False,
+                shuffle=True,
             )
             for key, dataset in self.train_datasets.items()
         }
+        return train_dataloaders
 
     def val_dataloader(self):
         val_dataloaders = {
@@ -130,6 +140,7 @@ class ArnoldDataModule(pl.LightningDataModule):
                 batch_size=dataset.batch_size,
                 num_workers=dataset.num_workers,
                 pin_memory=False,
+                shuffle=False,
             )
             for key, dataset in self.val_datasets.items()
         }

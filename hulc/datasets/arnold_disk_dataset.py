@@ -41,11 +41,21 @@ class ArnoldDiskDataset(ArnoldBaseDataset):
         skip_frames: int = 0,
         save_format: str = "npz",
         pretrain: bool = False,
+        data_split: list = None,
+        validation: bool = True,
         **kwargs: Any,
     ):
         super().__init__(*args, **kwargs)
-       
-        self.files = sorted(Path(self.abs_datasets_dir).glob('*'))
+        if data_split is None:
+            raise NotImplementedError("Please provide the specified split files list!")
+
+        
+        self.files = sorted([Path(self.abs_datasets_dir).parent / filename for filename in data_split])
+        # ArnoldBaseDataset is abstract, length is defined here
+        self.validation = validation
+        self.length = len(list(filter(lambda x: x.is_dir, self.files)))
+        
+        
         # self._load_episode(0)
         # self.save_format = save_format
         # if self.save_format == "pkl":
@@ -65,6 +75,7 @@ class ArnoldDiskDataset(ArnoldBaseDataset):
 
         # self.naming_pattern, self.n_digits = lookup_naming_pattern(self.abs_datasets_dir, self.save_format)
 
+        
 
 
     # def _get_episode_name(self, file_idx: int) -> Path:
@@ -112,6 +123,8 @@ class ArnoldDiskDataset(ArnoldBaseDataset):
             imgs = sorted(list(filter(check_multiple, list(folder.glob("*.png")))))
             loaded_imgs = np.stack([np.asarray(Image.open(img)) for img in imgs][start_index:end_index])
             episodes['depth'+str(camera)] = loaded_imgs
+
+        assert loaded_imgs[0].shape == (256, 256)
 
         for camera in range(4):
             folder = traj / 'raw_images' / "Camera{0}".format(camera) 

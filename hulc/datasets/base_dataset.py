@@ -1,3 +1,4 @@
+from abc import ABC
 import logging
 from pathlib import Path
 from typing import Dict, Tuple, Union
@@ -37,7 +38,7 @@ def get_validation_window_size(idx: int, min_window_size: int, max_window_size: 
     return min_window_size + hasher(str(idx)) % window_range
 
 
-class BaseDataset(Dataset):
+class BaseDataset(Dataset, ABC):
     """
     Abstract dataset base class.
 

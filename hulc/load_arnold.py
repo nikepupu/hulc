@@ -21,10 +21,11 @@ from hulc.utils.utils import (
 )
 import sys
 import os
-arnold_args = "trainer.gpus=-1 datamodule.root_data_dir=/media/nikepupu/fast/frame12update/pickup_object datamodule/datasets=arnold"
+
+
+arnold_args = "trainer.gpus=-1 datamodule.root_data_dir=/home/qywu/Desktop/WorkingProjects/Arnold/custom-hulc/dataset/pickup_object datamodule/datasets=arnold"
 sys.argv[2:] = arnold_args.split(" ")
 
-# os.environ['CUDA_LAUNCH_BLOCKING']='1'
 logger = logging.getLogger(__name__)
 
 
