@@ -156,7 +156,7 @@ class ArnoldDiskDataset(ArnoldBaseDataset):
         robot_effort = np.stack([ np.array(data['robot_state'])[:, 2] for data in loaded_jsons ])
         episodes['robot_effort'] = robot_effort
         
-        robot_gripper = np.stack([ np.array(data['modified_actions']['joint_positions'][8]*2-1) for data in loaded_jsons ])
+        robot_gripper = np.stack([ np.array(int(data['applied_actions']['joint_positions'][8]>3.9)*2-1) for data in loaded_jsons ])
         episodes['robot_gripper'] = robot_gripper.reshape((-1, 1))
         
         # print("gripper: ",   episodes['robot_gripper'].shape )
