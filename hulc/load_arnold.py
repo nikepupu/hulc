@@ -24,6 +24,7 @@ import os
 
 
 arnold_args = "trainer.gpus=-1 datamodule.root_data_dir=/home/qywu/Desktop/WorkingProjects/Arnold/custom-hulc/dataset/pickup_object datamodule/datasets=arnold"
+arnold_args = "trainer.gpus=-1 datamodule.root_data_dir=/media/nikepupu/fast/CustomHulc/dataset/pickup_object datamodule/datasets=arnold"
 sys.argv[2:] = arnold_args.split(" ")
 
 logger = logging.getLogger(__name__)
