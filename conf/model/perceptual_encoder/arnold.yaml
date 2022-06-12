@@ -2,10 +2,10 @@ _target_: hulc.models.perceptual_encoders.arnold_concat_encoders.ArnoldConcatEnc
 _recursive_: false
 
 defaults:
- - rgb0: clip
- - rgb1: clip
- - rgb2: clip
- - rgb3: clip
+ - rgb0: default
+ - rgb1: default
+ - rgb2: default
+ - rgb3: default
  - depth0: default
  - depth1: default
  - depth2: default
