@@ -9,7 +9,7 @@ model = SentenceTransformer('all-MiniLM-L12-v2')
 # sentence_embeddings = model.encode(sentences)
 # print(sentence_embeddings.shape)
 from pathlib import Path
-path = Path('/media/nikepupu/fast/frame12update/pickup_object/')
+path = Path('/media/nikepupu/fast/frame24update/pickup_object/training_set')
 folders = sorted(list(filter(lambda x: x.is_dir(), path.glob('*'))))
 missions_json = [folder / 'mission.json' for folder in folders]
 loaded_jsons = []

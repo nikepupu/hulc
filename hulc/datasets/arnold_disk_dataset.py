@@ -156,11 +156,14 @@ class ArnoldDiskDataset(ArnoldBaseDataset):
         robot_effort = np.stack([ np.array(data['robot_state'])[:, 2] for data in loaded_jsons ])
         episodes['robot_effort'] = robot_effort
         
-        robot_gripper = np.stack([ np.array(data['modified_actions']['joint_positions'])[8] for data in loaded_jsons ])
+        robot_gripper = np.stack([ np.array(data['modified_actions']['joint_positions'])[8]*2-1 for data in loaded_jsons ])
         episodes['robot_gripper'] = robot_gripper
+
+        episodes['actions'] = np.concatenate((episodes['actions'], episodes['robot_gripper']))
 
         robot_obs = np.stack([self.get_robot_obs(data) for data in loaded_jsons ])
         episodes['robot_obs'] = robot_obs
+
 
         langauge_file = traj / 'mission.json'
         # with open(langauge_file) as f:

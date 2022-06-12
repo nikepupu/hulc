@@ -68,8 +68,8 @@ def train(cfg: DictConfig) -> None:
     print("trainer _args, ", trainer_args)
     trainer = Trainer(**trainer_args)
     print("trainer _args done, ", trainer_args)
-    import pdb
-    pdb.set_trace()
+    # import pdb
+    # pdb.set_trace()
     # Start training
     trainer.fit(model, datamodule=datamodule, ckpt_path=chk)  # type: ignore
 

@@ -667,8 +667,8 @@ class Hulc(pl.LightningModule):
             self.val_dataset = val_dataset
             # print("folder", train_dataset.abs_datasets_dir / train_dataset.lang_folder / "auto_lang_ann.npy")
             # exit()
-            import pdb
-            pdb.set_trace()
+            # import pdb
+            # pdb.set_trace()
             lang_data_train = np.load(
                 train_dataset.abs_datasets_dir / train_dataset.lang_folder / "auto_lang_ann.npy", allow_pickle=True
             ).item()
